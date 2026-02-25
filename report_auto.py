@@ -4,10 +4,24 @@ import argparse
 
 import cv2
 import tqdm
+from datetime import datetime
 
 from defect_detection import Detector
 from defect_detection.detect import crop_regions
 from defect_detection.utils import Report, save_polygons_to_yolo_format
+
+def update_progress(processing_path, total, processed, last_file, start_time):
+    progress = {
+        "total_files": total,
+        "processed_files": processed,
+        "progress_percent": round((processed / total) * 100, 2),
+        "last_processed_file": last_file,
+        "start_time": start_time,
+        "last_update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    with open(processing_path, "w", encoding="utf-8") as f:
+        json.dump(progress, f, indent=4, ensure_ascii=False)
 
 def batch(iterable, batch_size):
     for i in range(0, len(iterable), batch_size):
@@ -21,6 +35,8 @@ def run(src_root, dst_root, line, grade, dates, batch_size=9):
     for date in dates:
         src_dir = os.path.join(src_root, line, date)
         dst_dir = os.path.join(dst_root, line, grade, date)
+        processing_path = os.path.join(dst_root, line, grade, f"{date}.processing.json")
+        start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         dst_result_image_dir = os.path.join(dst_dir, "results", "images")
         dst_result_meta_dir = os.path.join(dst_dir, "results", "metadatas")
@@ -36,6 +52,19 @@ def run(src_root, dst_root, line, grade, dates, batch_size=9):
             if os.path.isdir(os.path.join(src_dir, d))
             and d.startswith("CAM")
         ] or [""]
+
+        all_files = []
+
+        for cam in cams:
+            cam_dir = os.path.join(src_dir, cam)
+            files = [f for f in os.listdir(cam_dir) if f.endswith(".jpg")]
+            all_files.extend([(cam, f) for f in files])
+
+        total_files = len(all_files)
+        processed_count = 0
+
+        if total_files == 0:
+            continue
 
         # cams
         for cam in cams:
@@ -75,6 +104,15 @@ def run(src_root, dst_root, line, grade, dates, batch_size=9):
                     for filename, (crop, segmentations) in crops.items():
                         cv2.imwrite(os.path.join(dst_crop_images_dir, f"{filename}.jpg"), crop)
                         save_polygons_to_yolo_format(os.path.join(dst_crop_labels_dir, f"{filename}.txt"), [seg["polygon"] for seg in segmentations], [seg["class_id"] for seg in segmentations])
+
+                    processed_count += 1
+                    update_progress(
+                        processing_path,
+                        total_files,
+                        processed_count,
+                        imagename,
+                        start_time
+                    )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
