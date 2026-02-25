@@ -50,13 +50,24 @@ def run(src_root, dst_root, line, grade, dates, batch_size=9):
                 results = detector.detect(img_paths)
 
                 for result in results:
+                    # reclassification
+                    for b_idx in range(len(result.anomaly.regions)):
+                        anomaly_regions = result.anomaly.regions[b_idx]
+                        anomaly_classes = result.anomaly_cls.regions[b_idx]
+                        segmentations = result.segmentation.regions[b_idx]
+                        for polygon_source in segmentations:
+                            polygon_source.class_id = anomaly_classes.class_id
+                            polygon_source.class_name = anomaly_classes.class_name
+
                     # result image
-                    imagename = os.path.basename(result.image_path)
-                    # cv2.imwrite(os.path.join(dst_result_image_dir, f"{imagename}.jpg"), result.visualize())
+                    imagename = os.path.splitext(os.path.basename(result.image_path))[0]
+                    cv2.imwrite(os.path.join(dst_result_image_dir, f"{imagename}.jpg"), result.visualize())
+
                     crops, metadata = crop_regions(
                         image=result.image,
                         imagename=imagename,
                         crop_sources=result.anomaly.regions,
+                        crop_cls_sources=result.anomaly_cls.regions,
                         polygon_sources=result.segmentation.regions,
                     )
                     with open(os.path.join(dst_result_meta_dir, f"{imagename}.json"), "w", encoding="utf-8") as f:

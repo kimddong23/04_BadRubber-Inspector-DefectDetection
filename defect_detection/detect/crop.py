@@ -160,6 +160,7 @@ def crop_regions(
     image: np.ndarray,
     imagename: str,
     crop_sources,
+    crop_cls_sources,
     polygon_sources,
     prefix: str = None,
     draw_polygon: bool = False,
@@ -180,7 +181,7 @@ def crop_regions(
         "crop": []
     }
 
-    for r_idx, (crop_region, seg_list) in enumerate(zip(crop_sources, polygon_sources)):
+    for r_idx, (crop_region, crop_cls, seg_list) in enumerate(zip(crop_sources, crop_cls_sources, polygon_sources)):
 
         bbox_scaled = compute_crop_bbox(crop_region, H, W)
         if bbox_scaled is None:
@@ -193,6 +194,14 @@ def crop_regions(
             H,
             W,
         )
+
+        seg_exist = True
+        if len(seg_list) == 0:
+            crop_region.color = (255, 255, 255)
+            crop_region.class_id = crop_cls.class_id
+            crop_region.class_name = crop_cls.class_name
+            seg_list = [crop_region]
+            seg_exist = False
 
         (
             polygons_to_draw,
@@ -225,6 +234,7 @@ def crop_regions(
             f"{max_conf:.4f}",
             f"{r_idx:02d}",
             imagename,
+            f"seg-exist-{seg_exist}",
         )
 
         crop_hash = compute_image_hash(crop_img)
@@ -241,6 +251,7 @@ def crop_regions(
             "resolution": [crop_w, crop_h],
             "area": crop_w * crop_h,
             "segmentations": segmentations,
+            "seg_exist": seg_exist,
         })
 
         crops[filename] = (crop_img, segmentations)

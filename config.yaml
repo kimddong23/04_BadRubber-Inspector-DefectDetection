@@ -12,7 +12,7 @@ defect_detection:
 
   bgremover:
     checkpoint: ./checkpoints/segment/weights/rmbg/all/weights/best.pt
-    imgsz: 160 # 32*5
+    imgsz: 224 # 32*7
 
   segmenter:
     checkpoint: ./checkpoints/segment/weights/yolo_seg/SSBR_ALL/weights/best.pt

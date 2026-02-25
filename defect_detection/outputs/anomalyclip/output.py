@@ -11,16 +11,19 @@ class AnomalyRegion:
         "polygon_n",
         "bboxes_xyxy",
         "bboxes_xyxy_n",
-        "anomaly_score",
+        "confidence",
         "area",
-        "area_n"
+        "area_n",
+        "color",
+        "class_id",
+        "class_name",
     )
 
     polygon: np.ndarray
     polygon_n: np.ndarray            # (N, 2) float32 normalized
     bboxes_xyxy: Tuple[int, int, int, int]
     bboxes_xyxy_n: Tuple[float, float, float, float]
-    anomaly_score: float
+    confidence: float
     area: float
     area_n: float
 
@@ -135,7 +138,7 @@ class AnomalyCLIPOutput:
                     polygon_n=polygon_n,
                     bboxes_xyxy=bbox_xyxy,
                     bboxes_xyxy_n=bboxes_xyxy_n,
-                    anomaly_score=score,
+                    confidence=score,
                     area=area,
                     area_n=area_n,
                 )

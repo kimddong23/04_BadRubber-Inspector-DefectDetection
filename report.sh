@@ -2,14 +2,14 @@
 
 source venv_py310/bin/activate
 
-SRC_ROOT="/home/s1k2/04_BadRubber/datasets/raw"
-DST_ROOT="/home/s1k2/04_BadRubber/datasets/processed"
+SRC_ROOT="./tests/test_datas"
+DST_ROOT="./tests/test_datas_results"
 
-LINE="BR-C"
+LINE="SSBR"
 GRADE="unknown"
 
 DATES=(
-  "2026-02-21"
+  "2026-02-20"
 )
 
 BATCH_SIZE=9
