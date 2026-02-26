@@ -88,7 +88,7 @@ class AnomalyCLIPInference:
             "ViT-L/14@336px",
             device=self.device,
             design_details=params,
-            download_root="./checkpoints/anomalyclip",
+            download_root="./checkpoints/defect/anomalyclip",
         )
         model.eval()
 

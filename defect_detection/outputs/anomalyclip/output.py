@@ -85,7 +85,8 @@ class AnomalyCLIPOutput:
 
         for amap in self.maps:
             regions = self._extract_regions_single(amap)
-            global_score = self._compute_global_score(amap)
+            # global_score = self._compute_global_score(amap)
+            global_score = 0.0
 
             regions_batch.append(regions)
             global_scores_batch.append(global_score)
