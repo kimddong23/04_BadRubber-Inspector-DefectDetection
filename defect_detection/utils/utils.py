@@ -2,6 +2,7 @@ import hashlib
 import random
 from typing import Tuple, Optional
 
+import os
 import cv2
 import numpy as np
 
@@ -110,3 +111,29 @@ def save_polygons_to_yolo_format(
 
     with open(save_path, "w") as f:
         f.write("\n".join(lines))
+
+def next_path(base_path, limit=5000):
+    parent = os.path.dirname(base_path)
+    name = os.path.basename(base_path)
+
+    idxs = [
+        int(d.split("_")[-1])
+        for d in os.listdir(parent)
+        if d.startswith(name + "_") and d.split("_")[-1].isdigit()
+    ]
+
+    if not idxs:
+        return_dir = os.path.join(parent, f"{name}_0")
+        os.makedirs(return_dir, exist_ok=True)
+        return return_dir
+
+    i = max(idxs)
+    last_dir = os.path.join(parent, f"{name}_{i}")
+
+    if len(os.listdir(last_dir)) >= limit:
+        return_dir = os.path.join(parent, f"{name}_{i+1}")
+        os.makedirs(return_dir, exist_ok=True)
+        return return_dir
+
+    os.makedirs(last_dir, exist_ok=True)
+    return last_dir
