@@ -58,6 +58,7 @@ def visualize(
         vis_img = draw_normalized_polygons(
             image=vis_img,
             polygons_n=[region.polygon_n for region in anomaly.regions],
+            # labels=[region.source for region in anomaly.regions],
             colors=[region.color for region in anomaly_cls.regions],
             is_draw=[not region.is_pass for region in anomaly_cls.regions] if not show_pass_classes else None,
             thickness=5,

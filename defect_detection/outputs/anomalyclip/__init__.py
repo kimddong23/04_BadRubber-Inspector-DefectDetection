@@ -1,3 +1,3 @@
-from .output import AnomalyCLIPOutput, AnomalyCLIPBatchItem, AnomalyRegion
+from .output import AnomalyCLIPOutput, AnomalyCLIPBatchItem, AnomalyRegion, merge_anomlay_outputs
 
 __all__ = []

@@ -37,6 +37,7 @@ class AnomalyCLIPInference:
         DPAM_layer: int = 20,
         score_threshold: float = 0.25,
         area_threshold: int = 300,
+        name: str = "anomalyclip",
     ) -> None:
         setup_seed(10)
 
@@ -51,7 +52,8 @@ class AnomalyCLIPInference:
         self.DPAM_layer = DPAM_layer
         self.score_threshold = score_threshold
         self.area_threshold = area_threshold
-        
+        self.name = name
+
         self.device: str = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model: Optional[torch.nn.Module] = None
@@ -254,4 +256,5 @@ class AnomalyCLIPInference:
             maps=resized_maps.cpu().numpy() * (foreground_masks if foreground_masks is not None else 1),
             score_threshold=self.score_threshold,
             area_threshold=self.area_threshold,
+            source=self.name,
         )

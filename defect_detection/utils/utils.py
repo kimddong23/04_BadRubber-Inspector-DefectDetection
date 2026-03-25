@@ -137,3 +137,15 @@ def next_path(base_path, limit=5000):
 
     os.makedirs(last_dir, exist_ok=True)
     return last_dir
+
+def calc_iou(box1, box2):
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    inter = max(0, x2-x1) * max(0, y2-y1)
+    area1 = (box1[2]-box1[0])*(box1[3]-box1[1])
+    area2 = (box2[2]-box2[0])*(box2[3]-box2[1])
+
+    return inter / (area1 + area2 - inter + 1e-6)

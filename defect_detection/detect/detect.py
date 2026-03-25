@@ -3,8 +3,8 @@ from typing import List, Tuple
 
 import cv2
 
-from defect_detection.models import AnomalyCLIPInference, BackgroundRemover, Classifier, RegionClassifierAdapter, Segmenter, RegionSegmenterAdapter
-from defect_detection.outputs import RegionClassificationOutput, ClassificationBatchItem
+from defect_detection.models import AnomalyCLIPInference, BackgroundRemover, Classifier, RegionClassifierAdapter, Segmenter, RegionSegmenterAdapter, ObjectDetector
+from defect_detection.outputs import RegionClassificationOutput, ClassificationBatchItem, merge_anomlay_outputs
 from defect_detection.utils import load_config, random_color
 from .result import DetectorOutput
 from .visualize import draw_normalized_polygons
@@ -24,6 +24,26 @@ class Detector:
             checkpoint_path=config["bgremover"]["checkpoint"],
             imgsz=config["bgremover"]["imgsz"],
         )
+
+        if config['dot_detector1'] is not None:
+            self.dot_detector1 = ObjectDetector(
+                checkpoint_path=config["dot_detector1"]["checkpoint"],
+                imgsz=config["dot_detector1"]["imgsz"],
+                threshold=config["dot_detector1"]["threshold"],
+                name="dot_detector1",
+            )
+        else:
+            self.dot_detector1 = None
+
+        if config['dot_detector2'] is not None:
+            self.dot_detector2 = ObjectDetector(
+                checkpoint_path=config["dot_detector2"]["checkpoint"],
+                imgsz=config["dot_detector2"]["imgsz"],
+                threshold=config["dot_detector2"]["threshold"],
+                name="dot_detector2",
+            )
+        else:
+            self.dot_detector2 = None
 
         self.region_classifier = RegionClassifierAdapter(
             Classifier(
@@ -48,40 +68,54 @@ class Detector:
     def detect(self, imgs_path: List[str]) -> DetectorOutput:
         t0 = time.time()
 
+        # read images
         images = [cv2.imread(p) for p in imgs_path]
         t1 = time.time()
 
         foreground = self.bgremover.infer(images)
         t2 = time.time()
 
+        # detect anomaly regions
         anomaly = self.anomaly_extractor.infer(images, foreground.masks)
         t3 = time.time()
-        
-        anomaly_cls = self.region_classifier.infer(images, anomaly)
+
+        dot1 = self.dot_detector1.infer(images) if self.dot_detector1 is not None else None
         t4 = time.time()
 
-        segmentation = self.region_segmenter.infer(images, anomaly, anomaly_cls)
+        dot2 = self.dot_detector2.infer(images) if self.dot_detector2 is not None else None
         t5 = time.time()
+        
+        merged_anomaly = merge_anomlay_outputs([anomaly, dot1, dot2])
+        t6 = time.time()
+
+        # classify anomaly regions
+        merged_anomaly_cls = self.region_classifier.infer(images, merged_anomaly)
+        t7 = time.time()
+
+        segmentation = self.region_segmenter.infer(images, merged_anomaly, merged_anomaly_cls)
+        t8 = time.time()
 
         segmentation_cls = [ClassificationBatchItem(regions=[]) for _ in range(len(images))]
-        t6 = time.time()
+        t9 = time.time()
 
         print(f"load images: {(t1-t0)*1000}ms")
         print(f"foreground: {(t2-t1)*1000}ms")
-        print(f"anomaly: {(t3-t2)*1000}ms")
-        print(f"anomaly_cls: {(t4-t3)*1000}ms")
-        print(f"segmentation: {(t5-t4)*1000}ms")
-        print(f"segmentation_cls: {(t6-t5)*1000}ms")
+        print(f"dot1: {(t4-t3)*1000}ms")
+        print(f"dot2: {(t4-t3)*1000}ms")
+        print(f"anomaly: {(t5-t4)*1000}ms")
+        print(f"anomaly_cls: {(t6-t5)*1000}ms")
+        print(f"segmentation: {(t7-t6)*1000}ms")
+        print(f"segmentation_cls: {(t8-t7)*1000}ms")
         print(f"image count: {len(images)}")
-        print(f"total: {(t6-t0)*1000}ms")
-        print(f"time per image: {(t6-t0)*1000/len(images)}ms")
+        print(f"total: {(t8-t0)*1000}ms")
+        print(f"time per image: {(t8-t0)*1000/len(images)}ms")
 
         return DetectorOutput(
             images=images,
             images_path=imgs_path,
             foreground=foreground,
-            anomaly=anomaly,
-            anomaly_cls=anomaly_cls,
+            anomaly=merged_anomaly,
+            anomaly_cls=merged_anomaly_cls,
             segmentation=segmentation,
             segmentation_cls=segmentation_cls,
         )

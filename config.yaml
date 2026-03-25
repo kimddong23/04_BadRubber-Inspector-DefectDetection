@@ -5,6 +5,16 @@ defect_detection:
     threshold: 0.25
     min_area: 0
 
+  dot_detector1:
+    checkpoint: ./checkpoints/defect/dot/yolo/weights/best.pt
+    imgsz: 1280
+    threshold: 0.3
+
+  dot_detector2:
+    checkpoint: ./checkpoints/defect/dot/yolo_2048/weights/best.pt
+    imgsz: 2048
+    threshold: 0.3
+
   classifier:
     checkpoint: ./checkpoints/classify/weights/SSBR/_intergrated/weights/best.pt
     imgsz: 224 # 32*7

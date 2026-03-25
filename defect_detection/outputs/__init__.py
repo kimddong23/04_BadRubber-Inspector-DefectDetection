@@ -1,4 +1,4 @@
-from .anomalyclip import AnomalyCLIPOutput, AnomalyCLIPBatchItem, AnomalyRegion
+from .anomalyclip import AnomalyCLIPOutput, AnomalyCLIPBatchItem, AnomalyRegion, merge_anomlay_outputs
 from .removebg import ForegroundMaskOutput, ForegroundMaskBatchItem
 from .classify import RegionClassificationOutput, ClassificationBatchItem, Classification
 from .segment import SegmentationOutput, SegmentationBatchItem, Segmentation

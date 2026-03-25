@@ -28,7 +28,8 @@ class RegionClassifierAdapter:
             H, W = img.shape[:2]
 
             for r_idx, region in enumerate(regions):
-                x1n, y1n, x2n, y2n = scale_bbox_xyxy_n(region.bboxes_xyxy_n, scale=2.0)
+                scale = 10.0 if "dot" in region.source else 2.0
+                x1n, y1n, x2n, y2n = scale_bbox_xyxy_n(region.bboxes_xyxy_n, scale=scale)
 
                 x1, y1 = int(x1n * W), int(y1n * H)
                 x2, y2 = int(x2n * W), int(y2n * H)

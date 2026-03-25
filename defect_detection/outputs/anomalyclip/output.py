@@ -17,6 +17,7 @@ class AnomalyRegion:
         "color",
         "class_id",
         "class_name",
+        "source",
     )
 
     polygon: np.ndarray
@@ -26,6 +27,7 @@ class AnomalyRegion:
     confidence: float
     area: float
     area_n: float
+    source: str
 
 @dataclass
 class AnomalyCLIPBatchItem:
@@ -33,10 +35,12 @@ class AnomalyCLIPBatchItem:
         "map",
         "regions",
         "global_score",
+        "source",
     )
     map: np.ndarray
     regions: List[AnomalyRegion]
     global_score: float
+    source: str
 
 @dataclass
 class AnomalyCLIPOutput:
@@ -46,12 +50,14 @@ class AnomalyCLIPOutput:
         "area_threshold",
         "batch_regions",
         "global_scores",
+        "source",
     )
 
     # declare only fields that should be declared as dataclass fields
     maps: np.ndarray                 # (B, H, W)
     score_threshold: float
     area_threshold: float
+    source: str
 
     def __post_init__(self):
         self._validate_inputs()
@@ -142,6 +148,7 @@ class AnomalyCLIPOutput:
                     confidence=score,
                     area=area,
                     area_n=area_n,
+                    source=self.source,
                 )
             )
 
@@ -200,6 +207,7 @@ class AnomalyCLIPOutput:
                 map=self.maps[i],
                 regions=self.batch_regions[i],
                 global_score=self.global_scores[i],
+                source=self.source,
             )
 
     def __getitem__(self, idx):
@@ -207,4 +215,32 @@ class AnomalyCLIPOutput:
             map=self.maps[idx],
             regions=self.batch_regions[idx],
             global_score=self.global_scores[idx],
+            source=self.source,
         )
+
+def merge_anomlay_outputs(outputs: List[AnomalyCLIPOutput]) -> AnomalyCLIPOutput:
+    assert len(outputs) > 0
+
+    batch_size = len(outputs[0].maps)
+
+    dummy_maps = np.zeros_like(outputs[0].maps, dtype=np.float32)
+
+    merged = AnomalyCLIPOutput(
+        maps=dummy_maps,
+        score_threshold=0.0,
+        area_threshold=0.0,
+        source="merged",
+    )
+
+    # 안전하게 override
+    new_regions = [[] for _ in range(batch_size)]
+
+    for out in outputs:
+        if out is None:
+            continue
+        for i in range(batch_size):
+            new_regions[i].extend(out.batch_regions[i])
+
+    object.__setattr__(merged, "batch_regions", new_regions)
+
+    return merged
