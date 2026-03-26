@@ -105,7 +105,7 @@ class Segmenter:
                         area_n=area_n,
                         class_id=cls_id,
                         class_name=self.model.names[cls_id],
-                        color=(0, 255, 0),
+                        color=(0, 0, 255),
                     )
                 )
 

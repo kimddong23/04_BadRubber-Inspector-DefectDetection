@@ -59,7 +59,7 @@ def visualize(
             image=vis_img,
             polygons_n=[region.polygon_n for region in anomaly.regions],
             labels=[region.class_name for region in anomaly.regions],
-            colors=[(255, 255, 255) if region.is_pass else (0, 0, 255) for region in anomaly.regions],
+            colors=[(255, 255, 255) if region.is_pass else (255, 0, 0) for region in anomaly.regions],
             is_draw=[not region.is_pass for region in anomaly_cls.regions] if not show_pass_classes else None,
             thickness=5,
         )
@@ -83,22 +83,26 @@ def visualize(
         vis_img = draw_normalized_polygons(
             image=vis_img,
             polygons_n=[region.polygon_n for region in seg_regions],
-            labels=[f"{region.class_name} {region.confidence:.2f}" for region in seg_regions],
+            # labels=[f"{region.class_name} {region.confidence:.2f}" for region in seg_regions],
             colors=[region.color for region in seg_regions],
             thickness=5,
-            font_scale=3,
-            font_thickness=5,
+            font_scale=2,
+            font_thickness=2,
         )
 
     # draw segmentation region bboxes
-    # if show_segmentation_regions_bbox:
-    #     vis_img = draw_bboxes_xyxyn(
-    #         image=vis_img,
-    #         bboxes_xyxyn=[region.bboxes_xyxy_n for region in segmentation.regions],
-    #         labels=[f"{region.class_name} {region.confidence:.2f}" for region in segmentation_cls.regions],
-    #         colors=[region.color for region in segmentation_cls.regions],
-    #         thickness=5,
-    #     )
+    if show_segmentation_regions_bbox:
+        seg_regions = [seg for region in segmentation.regions for seg in region]
+
+        vis_img = draw_bboxes_xyxyn(
+            image=vis_img,
+            bboxes_xyxyn=[seg.bboxes_xyxy_n for seg in seg_regions],
+            labels=[f"{seg.class_name} {seg.confidence:.2f}" for seg in seg_regions],
+            colors=[seg.color for seg in seg_regions],
+            thickness=5,
+            font_scale=2,
+            font_thickness=2,
+        )
 
     return vis_img
 
