@@ -79,11 +79,13 @@ class DetectorOutput:
         if len(self.anomaly_cls) != B:
             raise ValueError("Classification batch size mismatch")
 
-        if len(self.segmentation) != B:
-            raise ValueError("Segmentation batch size mismatch")
+        if self.segmentation is not None:
+            if len(self.segmentation) != B:
+                raise ValueError("Segmentation batch size mismatch")
 
-        if len(self.segmentation_cls) != B:
-            raise ValueError("Segmentation classification batch size mismatch")
+        if self.segmentation_cls is not None:
+            if len(self.segmentation_cls) != B:
+                raise ValueError("Segmentation classification batch size mismatch")
 
     def __len__(self):
         return len(self.images)
@@ -99,6 +101,6 @@ class DetectorOutput:
             foreground=self.foreground[idx],
             anomaly=self.anomaly[idx],
             anomaly_cls=self.anomaly_cls[idx],
-            segmentation=self.segmentation[idx],
-            segmentation_cls=self.segmentation_cls[idx],
+            segmentation=self.segmentation[idx] if self.segmentation is not None else None,
+            segmentation_cls=self.segmentation_cls[idx] if self.segmentation_cls is not None else None,
         )

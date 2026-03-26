@@ -6,11 +6,12 @@ from typing import List, Sequence, Tuple
 
 import torch
 import numpy as np
-from .dinov2_embed import get_embedding, get_embeddings_batch
 from defect_detection.outputs import Classification
+from .dinov2_embed import get_embedding, get_embeddings_batch
+from .cluster_name import br_classes as class_infomations
 
 class Cluster:
-    def __init__(self, checkpoints_path: str):
+    def __init__(self, checkpoints_path: str, threshold: float):
         (
             self.embeddings,
             self.labels,
@@ -21,6 +22,7 @@ class Cluster:
         print(f"Using device: {device} for cluster")
         self.device = device
         self.embeddings = self.embeddings.to(self.device).half()
+        self.threshold = threshold
         self._warmup()
         
     def _warmup(self):
@@ -33,20 +35,6 @@ class Cluster:
                 queries = queries.half()
 
             _ = torch.matmul(queries, self.embeddings.T)
-
-    def _get_conditions(self, string):
-        conditions = [
-            "NG-",
-            "그냥고무+부스러기등등",
-            "부스러기-갈색고무",
-            "부스러기-황토고무",
-            "수분-부스러기섞인-부스러기",
-            "Side-2+3_고무-흐리고-수분이조금있고",
-        ]
-        for condition in conditions:
-            if condition in string:
-                return True
-        return False
 
     def infer_patches(
         self,
@@ -105,14 +93,18 @@ class Cluster:
                 labels = [self.labels[j] for j in idxs]
                 pred, pred_score = self._weighted_vote(labels, scores)
 
-            is_ng = self._get_conditions(pred) or (w * h > 1000000)
-
+            class_information = class_infomations[pred]
+            class_id = class_information["class_id"]
+            class_name = class_information["name"]
+            color = class_information["color"]
+            is_pass = (w*h < 1000000) and (class_information["pass"] or pred_score < self.threshold)
+            
             outputs.append({
-                "class_id": 100 if is_ng else 101,
-                "class_name": pred,
+                "class_id": class_id,
+                "class_name": class_name,
                 "confidence": float(pred_score),
-                "is_pass": not is_ng,
-                "color": (255, 255, 0) if is_ng else (0, 255, 255),
+                "is_pass": is_pass,
+                "color": color,
             })
 
         return outputs

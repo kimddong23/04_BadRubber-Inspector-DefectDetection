@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Iterator, Tuple
+from typing import List, Iterator, Tuple, Optional
 
 # ---------------------------------
 # Single region classification
@@ -47,3 +47,30 @@ class RegionClassificationOutput:
 
     def __getitem__(self, idx: int) -> ClassificationBatchItem:
         return ClassificationBatchItem(self.batch[idx])
+
+def merge_cls_outputs(
+    inputs: List[Optional[RegionClassificationOutput]],
+) -> Optional[RegionClassificationOutput]:
+
+    inputs = [x for x in inputs if x is not None]
+
+    if len(inputs) == 0:
+        return None
+
+    batch_size = len(inputs[0].batch)
+
+    for inp in inputs:
+        if len(inp.batch) != batch_size:
+            raise ValueError("Batch size mismatch in RegionClassificationOutput merge")
+
+    merged_batch: List[List[Classification]] = []
+
+    for b in range(batch_size):
+        merged_regions: List[Classification] = []
+
+        for inp in inputs:
+            merged_regions.extend(inp.batch[b])
+
+        merged_batch.append(merged_regions)
+
+    return RegionClassificationOutput(merged_batch)

@@ -58,24 +58,24 @@ def visualize(
         vis_img = draw_normalized_polygons(
             image=vis_img,
             polygons_n=[region.polygon_n for region in anomaly.regions],
-            labels=[region.class_name for region in anomaly.regions],
-            colors=[(255, 255, 255) if region.is_pass else (255, 0, 0) for region in anomaly.regions],
+            # labels=[region.class_name for region in anomaly.regions],
+            colors=[(255, 255, 255) if region.is_pass else (0, 0, 255) for region in anomaly.regions],
             is_draw=[not region.is_pass for region in anomaly_cls.regions] if not show_pass_classes else None,
             thickness=5,
         )
 
-    # # draw anomaly region bboxes
-    # if show_anomaly_regions_bbox:
-    #     vis_img = draw_bboxes_xyxyn(
-    #         image=vis_img,
-    #         bboxes_xyxyn=[region.bboxes_xyxy_n for region in anomaly.regions],
-    #         labels=[f"{region.class_name} {region.confidence:.2f}" for region in anomaly_cls.regions],
-    #         colors=[region.color for region in anomaly_cls.regions],
-    #         is_draw=[not region.is_pass for region in anomaly_cls.regions] if not show_pass_classes else None,
-    #         thickness=5,
-    #         font_scale=3,
-    #         font_thickness=5,
-    #     )
+    # draw anomaly region bboxes
+    if show_anomaly_regions_bbox:
+        vis_img = draw_bboxes_xyxyn(
+            image=vis_img,
+            bboxes_xyxyn=[region.bboxes_xyxy_n for region in anomaly.regions],
+            labels=[f"{region.class_name} {region.confidence:.2f}" for region in anomaly_cls.regions],
+            colors=[region.color for region in anomaly_cls.regions],
+            is_draw=[not region.is_pass for region in anomaly_cls.regions] if not show_pass_classes else None,
+            thickness=5,
+            font_scale=2,
+            font_thickness=2,
+        )
     
     # draw segmentation regions
     if show_segmentation_regions_polygon:
