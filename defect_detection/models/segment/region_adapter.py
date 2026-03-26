@@ -52,7 +52,7 @@ class RegionSegmenterAdapter:
                     continue
 
                 patches.append(patch)
-                mapping.append((b_idx, r_idx))
+                mapping.append((b_idx, r_idx, region_cls.is_pass))
                 offsets.append((x1, y1, W, H))
 
         # 2. segmentation inference
@@ -66,7 +66,8 @@ class RegionSegmenterAdapter:
             batch_out.append([[] for _ in range(num_regions)])
 
         # 4. restore mapping
-        for (b_idx, r_idx), segs in zip(mapping, results):
+        for (b_idx, r_idx, is_pass), segs in zip(mapping, results):
+            segs = segs if not is_pass else []
             batch_out[b_idx][r_idx] = segs
 
         return SegmentationOutput(batch_out)

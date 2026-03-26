@@ -42,7 +42,7 @@ class RegionClassifierAdapter:
                     continue
 
                 patches.append(patch)
-                mapping.append((b_idx, r_idx))
+                mapping.append((b_idx, r_idx, region.is_pass))
 
         results = self.classifier.infer_patches(patches)
 
@@ -51,8 +51,9 @@ class RegionClassifierAdapter:
             for regions in anomaly.batch_regions
         ]
 
-        for (b_idx, r_idx), cls in zip(mapping, results):
-            batch_out[b_idx][r_idx] = cls
+        for (b_idx, r_idx, is_pass), cls in zip(mapping, results):
+            region_cls = cls if not is_pass else None
+            batch_out[b_idx][r_idx] = region_cls
 
         for b in range(len(batch_out)):
             for r in range(len(batch_out[b])):

@@ -4,5 +4,6 @@ from .classify import Classifier, RegionClassifierAdapter
 from .segment import Segmenter, RegionSegmenterAdapter
 from .sam2 import SAM2Inference
 from .detect import ObjectDetector
+from .cluster import Cluster
 
 __all__ = []

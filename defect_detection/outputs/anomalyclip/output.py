@@ -18,6 +18,7 @@ class AnomalyRegion:
         "class_id",
         "class_name",
         "source",
+        "is_pass",
     )
 
     polygon: np.ndarray
@@ -28,6 +29,7 @@ class AnomalyRegion:
     area: float
     area_n: float
     source: str
+    is_pass: bool
 
 @dataclass
 class AnomalyCLIPBatchItem:
@@ -149,6 +151,7 @@ class AnomalyCLIPOutput:
                     area=area,
                     area_n=area_n,
                     source=self.source,
+                    is_pass=False,
                 )
             )
 
@@ -244,3 +247,19 @@ def merge_anomlay_outputs(outputs: List[AnomalyCLIPOutput]) -> AnomalyCLIPOutput
     object.__setattr__(merged, "batch_regions", new_regions)
 
     return merged
+
+def filter_by_cluster(anomaly, cluster_output):
+    new_regions = []
+
+    for regions, cluster_regions in zip(anomaly.batch_regions, cluster_output.batch):
+        updated = []
+
+        for r, c in zip(regions, cluster_regions):
+            r.is_pass = c.is_pass
+            r.class_name = c.class_name
+            updated.append(r)
+
+        new_regions.append(updated)
+
+    object.__setattr__(anomaly, "batch_regions", new_regions)
+    return anomaly

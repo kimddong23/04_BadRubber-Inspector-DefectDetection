@@ -3,8 +3,8 @@ from typing import List, Tuple
 
 import cv2
 
-from defect_detection.models import AnomalyCLIPInference, BackgroundRemover, Classifier, RegionClassifierAdapter, Segmenter, RegionSegmenterAdapter, ObjectDetector
-from defect_detection.outputs import RegionClassificationOutput, ClassificationBatchItem, merge_anomlay_outputs
+from defect_detection.models import AnomalyCLIPInference, BackgroundRemover, Classifier, RegionClassifierAdapter, Segmenter, RegionSegmenterAdapter, ObjectDetector, Cluster
+from defect_detection.outputs import RegionClassificationOutput, ClassificationBatchItem, merge_anomlay_outputs, filter_by_cluster
 from defect_detection.utils import load_config, random_color
 from .result import DetectorOutput
 from .visualize import draw_normalized_polygons
@@ -24,6 +24,15 @@ class Detector:
             checkpoint_path=config["bgremover"]["checkpoint"],
             imgsz=config["bgremover"]["imgsz"],
         )
+
+        if config['cluster'] is not None:
+            self.region_cluster = RegionClassifierAdapter(
+                Cluster(
+                checkpoints_path=config["cluster"]["checkpoints_path"],
+                )
+            )
+        else:
+            self.region_cluster = None
 
         if config['dot_detector1'] is not None:
             self.dot_detector1 = ObjectDetector(
@@ -45,13 +54,16 @@ class Detector:
         else:
             self.dot_detector2 = None
 
-        self.region_classifier = RegionClassifierAdapter(
-            Classifier(
-            checkpoint_path=config["classifier"]["checkpoint"],
-            imgsz=config["classifier"]["imgsz"],
-            conf_threshold=config["classifier"]["threshold"],
+        if config['classifier'] is not None:
+            self.region_classifier = RegionClassifierAdapter(
+                Classifier(
+                checkpoint_path=config["classifier"]["checkpoint"],
+                imgsz=config["classifier"]["imgsz"],
+                conf_threshold=config["classifier"]["threshold"],
+                )
             )
-        )
+        else:
+            self.region_classifier = None
 
         self.region_segmenter = RegionSegmenterAdapter(
             Segmenter(
@@ -79,36 +91,41 @@ class Detector:
         anomaly = self.anomaly_extractor.infer(images, foreground.masks)
         t3 = time.time()
 
-        dot1 = self.dot_detector1.infer(images) if self.dot_detector1 is not None else None
+        clusters = self.region_cluster.infer(images, anomaly) if self.region_cluster is not None else None
+        anomaly = filter_by_cluster(anomaly, clusters) if clusters is not None else anomaly
         t4 = time.time()
 
-        dot2 = self.dot_detector2.infer(images) if self.dot_detector2 is not None else None
+        dot1 = self.dot_detector1.infer(images) if self.dot_detector1 is not None else None
         t5 = time.time()
+
+        dot2 = self.dot_detector2.infer(images) if self.dot_detector2 is not None else None
+        t6 = time.time()
         
         merged_anomaly = merge_anomlay_outputs([anomaly, dot1, dot2])
-        t6 = time.time()
-
-        # classify anomaly regions
-        merged_anomaly_cls = self.region_classifier.infer(images, merged_anomaly)
         t7 = time.time()
 
-        segmentation = self.region_segmenter.infer(images, merged_anomaly, merged_anomaly_cls)
+        # classify anomaly regions
+        merged_anomaly_cls = self.region_classifier.infer(images, merged_anomaly) if self.region_classifier is not None else clusters
         t8 = time.time()
 
-        segmentation_cls = [ClassificationBatchItem(regions=[]) for _ in range(len(images))]
+        segmentation = self.region_segmenter.infer(images, merged_anomaly, merged_anomaly_cls)
         t9 = time.time()
+
+        segmentation_cls = [ClassificationBatchItem(regions=[]) for _ in range(len(images))]
+        t10 = time.time()
 
         print(f"load images: {(t1-t0)*1000}ms")
         print(f"foreground: {(t2-t1)*1000}ms")
-        print(f"dot1: {(t4-t3)*1000}ms")
-        print(f"dot2: {(t4-t3)*1000}ms")
-        print(f"anomaly: {(t5-t4)*1000}ms")
-        print(f"anomaly_cls: {(t6-t5)*1000}ms")
-        print(f"segmentation: {(t7-t6)*1000}ms")
-        print(f"segmentation_cls: {(t8-t7)*1000}ms")
+        print(f"anomaly: {(t3-t2)*1000}ms")
+        print(f"cluster: {(t4-t3)*1000}ms")
+        print(f"dot1: {(t5-t4)*1000}ms")
+        print(f"dot2: {(t6-t5)*1000}ms")
+        print(f"merged_anomaly: {(t7-t6)*1000}ms")
+        print(f"merged_anomaly_cls: {(t8-t7)*1000}ms")
+        print(f"segmentation: {(t9-t8)*1000}ms")
+        print(f"segmentation_cls: {(t10-t9)*1000}ms")
         print(f"image count: {len(images)}")
-        print(f"total: {(t8-t0)*1000}ms")
-        print(f"time per image: {(t8-t0)*1000/len(images)}ms")
+        print(f"total: {(t10-t0)*1000}ms")
 
         return DetectorOutput(
             images=images,
