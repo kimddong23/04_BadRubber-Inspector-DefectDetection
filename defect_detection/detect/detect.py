@@ -125,7 +125,7 @@ class Detector:
         # (Optional, Independent from Anomaly) dot detection
         dot1 = self.dot_detector1.infer(images) if self.dot_detector1 is not None else None
         dot2 = self.dot_detector2.infer(images) if self.dot_detector2 is not None else None
-        merged_dot = merge_anomlay_outputs([dot1, dot2])
+        merged_dot = merge_anomlay_outputs([dot1, dot2]) if dot1 is not None else None
         t8 = time.time()
 
         dot_clusters = self.region_dot_cluster.infer(images, merged_dot) if self.region_dot_cluster is not None else None
