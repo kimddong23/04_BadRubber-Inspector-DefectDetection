@@ -37,6 +37,9 @@ class RegionSegmenterAdapter:
             for r_idx, (region, region_cls) in enumerate(
                 zip(regions, classifications[b_idx].regions)
             ):
+                if region_cls.is_pass:
+                    continue
+                    
                 x1n, y1n, x2n, y2n = scale_bbox_xyxy_n(
                     region.bboxes_xyxy_n, scale=2.0
                 )
