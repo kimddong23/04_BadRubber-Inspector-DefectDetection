@@ -17,11 +17,13 @@ class ForegroundMaskOutput:
     __slots__ = (
         "masks",
         "polygons_n",
+        "images",
     )
 
     masks: np.ndarray                       # (B, H, W)
     polygons_n: List[List[np.ndarray]]        # per image polygons_n
-
+    images: List[np.ndarray]                  # per image foreground images
+    
     def __post_init__(self):
         if not isinstance(self.masks, np.ndarray):
             raise TypeError("masks must be np.ndarray")

@@ -68,4 +68,27 @@ class BackgroundRemover:
     ) -> ForegroundMaskOutput:
         results = self.model(images, imgsz=self.imgsz, verbose=False)
         masks, polygons_n = self._parse_yolo_segmentation(results)
-        return ForegroundMaskOutput(masks=masks, polygons_n=polygons_n)
+        forground_images = self._apply_background_removal(images, masks)
+        return ForegroundMaskOutput(masks=masks, polygons_n=polygons_n, images=forground_images)
+
+    def _apply_background_removal(
+        self,
+        images: Sequence[np.ndarray],
+        masks: np.ndarray,
+    ) -> List[np.ndarray]:
+
+        fg_images = []
+
+        for img, mask in zip(images, masks):
+            # mask: float32 (0~1) → uint8 (0 or 255)
+            mask_bin = (mask > 0.5).astype(np.uint8) * 255
+
+            # 3채널로 확장
+            mask_3ch = cv2.merge([mask_bin, mask_bin, mask_bin])
+
+            # foreground만 남기기
+            fg = cv2.bitwise_and(img, mask_3ch)
+
+            fg_images.append(fg)
+
+        return fg_images

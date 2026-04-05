@@ -123,8 +123,8 @@ class Detector:
         t7 = time.time()
 
         # (Optional, Independent from Anomaly) dot detection
-        dot1 = self.dot_detector1.infer(images) if self.dot_detector1 is not None else None
-        dot2 = self.dot_detector2.infer(images) if self.dot_detector2 is not None else None
+        dot1 = self.dot_detector1.infer(foreground.images) if self.dot_detector1 is not None else None
+        dot2 = self.dot_detector2.infer(foreground.images) if self.dot_detector2 is not None else None
         merged_dot = merge_anomlay_outputs([dot1, dot2]) if dot1 is not None else None
         t8 = time.time()
 
