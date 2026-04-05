@@ -1,4 +1,6 @@
-from typing import List, Tuple
+from collections import defaultdict
+from typing import Dict, List, Set, Tuple
+
 import numpy as np
 
 from defect_detection.outputs import SegmentationOutput, Segmentation
@@ -24,11 +26,13 @@ class RegionSegmenterAdapter:
         classifications: RegionClassificationOutput,
     ) -> SegmentationOutput:
 
-        patches = []
-        mapping: List[Tuple[int, int]] = []  # (batch_idx, region_idx)
-        offsets: List[Tuple[int, int, int, int]] = []
+        patches_by_batch: Dict[int, List[np.ndarray]] = defaultdict(list)
+        offsets_by_batch: Dict[int, List[Tuple[int, int, int, int]]] = (
+            defaultdict(list)
+        )
+        regions_with_patch: Dict[int, Set[int]] = defaultdict(set)
 
-        # 1. collect patches
+        # 1. collect patches (배치 이미지별로 묶음)
         for b_idx, (img, regions) in enumerate(
             zip(images, anomaly.batch_regions)
         ):
@@ -39,7 +43,7 @@ class RegionSegmenterAdapter:
             ):
                 if region_cls.is_pass:
                     continue
-                    
+
                 x1n, y1n, x2n, y2n = scale_bbox_xyxy_n(
                     region.bboxes_xyxy_n, scale=2.0
                 )
@@ -54,12 +58,20 @@ class RegionSegmenterAdapter:
                 if patch.size == 0:
                     continue
 
-                patches.append(patch)
-                mapping.append((b_idx, r_idx, region_cls.is_pass))
-                offsets.append((x1, y1, W, H))
+                patches_by_batch[b_idx].append(patch)
+                offsets_by_batch[b_idx].append((x1, y1, W, H))
+                regions_with_patch[b_idx].add(r_idx)
 
-        # 2. segmentation inference
-        results = self.segmenter.infer_patches(patches, offsets)
+        # 2. segmentation inference — 이미지(배치 인덱스) 단위로 병합·좌표계 유지
+        merged_by_batch: Dict[int, List[Segmentation]] = {}
+        for b_idx, p_list in patches_by_batch.items():
+            H, W = images[b_idx].shape[:2]
+            merged_by_batch[b_idx] = self.segmenter.infer_patches(
+                p_list,
+                offsets_by_batch[b_idx],
+                full_w=W,
+                full_h=H,
+            )
 
         # 3. create [B][R][S] structure
         batch_out: List[List[List[Segmentation]]] = []
@@ -68,9 +80,15 @@ class RegionSegmenterAdapter:
             num_regions = len(anomaly.batch_regions[b_idx])
             batch_out.append([[] for _ in range(num_regions)])
 
-        # 4. restore mapping
-        for (b_idx, r_idx, is_pass), segs in zip(mapping, results):
-            segs = segs if not is_pass else []
-            batch_out[b_idx][r_idx] = segs
+        # # 4. 같은 이미지에서 나온 region 대통합 결과를 해당 region들에 동일하게 부여
+        # for b_idx, r_set in regions_with_patch.items():
+        #     segs = merged_by_batch[b_idx]
+        #     for r_idx in r_set:
+        #         batch_out[b_idx][r_idx] = segs
 
+        # 4. 이미지 단위 대통합 seg는 region 인덱스가 가장 작은 칸 하나에만 둠 (중복 카운트 방지)
+        for b_idx, r_set in regions_with_patch.items():
+            r_primary = min(r_set)
+            batch_out[b_idx][r_primary] = merged_by_batch[b_idx]
+            
         return SegmentationOutput(batch_out)

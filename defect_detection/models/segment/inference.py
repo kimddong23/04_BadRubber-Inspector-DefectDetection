@@ -18,8 +18,6 @@ class Segmenter:
         self.model = YOLO(checkpoint_path)
         self.imgsz = imgsz
         self.conf_threshold = conf_threshold
-        self.full_W = 2432
-        self.full_H = 2048
         self._warmup()
 
     def _warmup(self, batch_size: int = 1) -> None:
@@ -31,8 +29,9 @@ class Segmenter:
         self,
         patches: Sequence[np.ndarray],
         offsets: Sequence[Tuple[int, int, int, int]],  # x1, y1, W, H
-    ) -> List[List[Segmentation]]:
-
+        full_w: int,
+        full_h: int,
+    ) -> List[Segmentation]:
         if len(patches) == 0:
             return []
 
@@ -73,13 +72,11 @@ class Segmenter:
                     (polygon_global, conf, area)
                 )
 
-        merged_segments = self._merge_polygons_by_class(
+        return self._merge_polygons_by_class(
             class_polys,
-            self.full_W,
-            self.full_H,
+            full_w,
+            full_h,
         )
-
-        return [merged_segments]
 
     def _merge_polygons_by_class(
         self,

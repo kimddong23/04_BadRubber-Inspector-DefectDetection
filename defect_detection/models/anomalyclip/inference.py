@@ -26,7 +26,7 @@ class AnomalyCLIPInference:
     def __init__(
         self,
         checkpoint_path: str,
-        features_list: List[int] = [6, 12, 18, 24],
+        features_list: Optional[List[int]] = None,
         imgsz: int = 518,
         depth: int = 9,
         n_ctx: int = 12,
@@ -42,7 +42,7 @@ class AnomalyCLIPInference:
         setup_seed(10)
 
         self.checkpoint_path = checkpoint_path
-        self.features_list = features_list
+        self.features_list = features_list if features_list is not None else [24]
         self.imgsz = imgsz
         self.depth = depth
         self.n_ctx = n_ctx
@@ -76,7 +76,7 @@ class AnomalyCLIPInference:
                 np.zeros((self.imgsz, self.imgsz, 3), dtype=np.uint8)
                 for _ in range(batch_size)
             ]
-            _ = self.infer(dummy_images)
+            _ = self.infer(dummy_images, foreground_masks=None)
 
 
     def _load_model_and_prompt_learner(self) -> None:
@@ -214,8 +214,6 @@ class AnomalyCLIPInference:
         """
         Resize anomaly maps (B, H, W) → original image sizes
         """
-        import torch.nn.functional as F
-
         resized_maps = []
 
         for i, (h, w) in enumerate(original_sizes):
@@ -249,12 +247,28 @@ class AnomalyCLIPInference:
                 imgs_tensor, self.features_list, DPAM_layer=self.DPAM_layer
             )
 
+        image_abnormal_probs = self._compute_image_scores(image_features)
+
         anomaly_maps = self._compute_anomaly_maps(patch_features)
         resized_maps = self._resize_to_original(anomaly_maps, original_sizes)
 
-        return AnomalyCLIPOutput(
-            maps=resized_maps.cpu().numpy() * (foreground_masks if foreground_masks is not None else 1),
+        maps_np = resized_maps.cpu().numpy().astype(np.float32)
+        if foreground_masks is not None:
+            m = np.asarray(foreground_masks, dtype=np.float32)
+            if m.ndim == 2:
+                m = m[np.newaxis, :, :]
+            if m.shape != maps_np.shape:
+                raise ValueError(
+                    f"foreground_masks shape {m.shape} != maps shape {maps_np.shape}"
+                )
+            maps_np = maps_np * m
+
+        out = AnomalyCLIPOutput(
+            maps=maps_np,
             score_threshold=self.score_threshold,
             area_threshold=self.area_threshold,
             source=self.name,
         )
+        probs_list = [float(x) for x in image_abnormal_probs.cpu().numpy().reshape(-1)]
+        object.__setattr__(out, "global_scores", probs_list)
+        return out
