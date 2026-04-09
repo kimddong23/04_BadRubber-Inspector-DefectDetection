@@ -6,6 +6,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from defect_detection.outputs import Segmentation
+from .classes import classes
 
 
 class Segmenter:
@@ -18,6 +19,7 @@ class Segmenter:
         self.model = YOLO(checkpoint_path)
         self.imgsz = imgsz
         self.conf_threshold = conf_threshold
+        self.classes = classes
         self._warmup()
 
     def _warmup(self, batch_size: int = 1) -> None:
@@ -88,6 +90,8 @@ class Segmenter:
         region_segments: List[Segmentation] = []
 
         for cls_id, polys in class_polys.items():
+            if self.classes[cls_id]["pass"]:
+                continue
 
             mask = np.zeros((H, W), dtype=np.uint8)
 
@@ -175,7 +179,7 @@ class Segmenter:
                         area=area,
                         area_n=area_n,
                         class_id=cls_id,
-                        class_name=self.model.names[cls_id],
+                        class_name=self.classes[cls_id]["name"],
                         color=(0, 0, 255),
                     )
                 )
