@@ -2,6 +2,7 @@ import time
 from typing import List, Tuple
 
 import cv2
+import numpy as np
 
 from defect_detection.models import AnomalyCLIPInference, BackgroundRemover, Classifier, RegionClassifierAdapter, Segmenter, RegionSegmenterAdapter, ObjectDetector, Cluster
 from defect_detection.outputs import RegionClassificationOutput, ClassificationBatchItem, merge_anomlay_outputs, filter_by_cluster, merge_cls_outputs
@@ -91,11 +92,11 @@ class Detector:
     # Main API
     # ---------------------------------
 
-    def detect(self, imgs_path: List[str]) -> DetectorOutput:
+    def detect(self, images: List[np.ndarray]) -> DetectorOutput:
         t0 = time.time()
 
         # read images
-        images = [cv2.imread(p) for p in imgs_path]
+        # images = [cv2.imread(p) for p in imgs_path]
         t1 = time.time()
 
         foreground = self.bgremover.infer(images)
@@ -156,7 +157,6 @@ class Detector:
 
         return DetectorOutput(
             images=images,
-            images_path=imgs_path,
             foreground=foreground,
             anomaly=merged_anomaly,
             anomaly_cls=merged_cls,

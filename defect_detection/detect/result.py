@@ -23,7 +23,6 @@ vis_show_cfg = load_config()["show"]
 @dataclass
 class DetectorBatchItem:
     image: np.ndarray
-    image_path: str
     foreground: ForegroundMaskBatchItem
     anomaly: AnomalyCLIPBatchItem
     anomaly_cls: ClassificationBatchItem
@@ -60,7 +59,6 @@ class DetectorBatchItem:
 @dataclass
 class DetectorOutput:
     images: Sequence[np.ndarray]
-    images_path: Sequence[str]
     foreground: ForegroundMaskOutput
     anomaly: AnomalyCLIPOutput
     anomaly_cls: ClassificationBatchItem
@@ -97,7 +95,6 @@ class DetectorOutput:
     def __getitem__(self, idx: int) -> DetectorBatchItem:
         return DetectorBatchItem(
             image=self.images[idx],
-            image_path=self.images_path[idx],
             foreground=self.foreground[idx],
             anomaly=self.anomaly[idx],
             anomaly_cls=self.anomaly_cls[idx],
