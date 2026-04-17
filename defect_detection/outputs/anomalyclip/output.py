@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
+from .colors import HeatmapColorRanges
 
 @dataclass
 class AnomalyRegion:
@@ -107,7 +108,21 @@ class AnomalyCLIPOutput:
     ) -> List[AnomalyRegion]:
 
         H, W = amap.shape
-        binary = (amap >= self.score_threshold).astype(np.uint8)
+        amap = np.clip(amap.astype(np.float32), 0.0, 1.0)
+
+        # "시각화에서 빨간색으로 보이는 영역" 기준으로 마스크 생성.
+        color_ranges = HeatmapColorRanges(amap)
+        binary = cv2.bitwise_or(color_ranges.red(), color_ranges.yellow())
+
+        # score_threshold를 추가 하한으로 적용(원하면 0.0으로 두고 빨간색 기준만 사용 가능)
+        score_mask = (amap >= float(max(self.score_threshold, 0.0))).astype(np.uint8) * 255
+        binary = cv2.bitwise_and(binary, score_mask)
+
+        # 작은 끊김/구멍을 줄여 bbox 누락 완화
+        kernel_close = np.ones((5, 5), dtype=np.uint8)
+        kernel_open = np.ones((3, 3), dtype=np.uint8)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_open)
 
         contours, _ = cv2.findContours(
             binary,

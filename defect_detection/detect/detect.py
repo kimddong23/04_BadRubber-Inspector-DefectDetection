@@ -116,7 +116,7 @@ class Detector:
         t5 = time.time()
 
         # segment anomaly regions
-        segmentation = self.region_segmenter.infer(images, anomaly, anomaly_cls) if self.region_segmenter is not None else None
+        segmentation = self.region_segmenter.infer(foreground.images, anomaly, anomaly_cls) if self.region_segmenter is not None else None
         t6 = time.time()
 
         # reclassify segmented regions
