@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple, Dict
+from typing import Any, List, Sequence, Tuple, Dict
 
 import cv2
 import tqdm
@@ -6,13 +6,13 @@ import numpy as np
 from ultralytics import YOLO
 
 from defect_detection.outputs import Segmentation
-from .classes import classes
 
 
 class Segmenter:
     def __init__(
         self,
         checkpoint_path: str,
+        classes: Dict[int, Dict[str, Any]],
         imgsz: int = 32,
         conf_threshold: float = 0.5,
     ) -> None:

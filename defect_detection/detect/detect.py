@@ -11,8 +11,11 @@ from .result import DetectorOutput
 from .visualize import draw_normalized_polygons
 
 class Detector:
-    def __init__(self):
-        config = load_config()
+    def __init__(self, config: dict | None = None):
+        if config is None:
+            config = load_config()
+        self.config = config
+        self.show = config.get("show") or {}
 
         self.anomaly_extractor = AnomalyCLIPInference(
             checkpoint_path=config["anomalyclip"]["checkpoint"],
@@ -31,6 +34,7 @@ class Detector:
                 Cluster(
                 checkpoints_path=config["anomaly_cluster"]["checkpoints_path"],
                 threshold=config["anomaly_cluster"]["threshold"],
+                classes=config["anomaly_cluster"]["classes"],
                 )
             )
         else:
@@ -61,6 +65,7 @@ class Detector:
                 Cluster(
                 checkpoints_path=config["dot_cluster"]["checkpoints_path"],
                 threshold=config["dot_cluster"]["threshold"],
+                classes=config["dot_cluster"]["classes"],
                 )
             )
         else:
@@ -72,6 +77,7 @@ class Detector:
                 checkpoint_path=config["classifier"]["checkpoint"],
                 imgsz=config["classifier"]["imgsz"],
                 conf_threshold=config["classifier"]["threshold"],
+                classes=config["classifier"]["classes"],
                 )
             )
         else:
@@ -83,6 +89,7 @@ class Detector:
                 checkpoint_path=config["segmenter"]["checkpoint"],
                 imgsz=config["segmenter"]["imgsz"],
                 conf_threshold=config["segmenter"]["threshold"],
+                classes=config["segmenter"]["classes"],
                 )
             )
         else:
@@ -162,4 +169,5 @@ class Detector:
             anomaly_cls=merged_cls,
             segmentation=segmentation,
             segmentation_cls=segmentation_cls,
+            show=self.show,
         )

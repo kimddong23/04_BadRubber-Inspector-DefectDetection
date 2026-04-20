@@ -2,16 +2,20 @@ import os
 import glob
 import shutil
 from collections import defaultdict
-from typing import List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 import torch
 import numpy as np
 from defect_detection.outputs import Classification
 from .dinov2_embed import get_embedding, get_embeddings_batch
-from .cluster_name import br_classes as class_infomations
 
 class Cluster:
-    def __init__(self, checkpoints_path: str, threshold: float):
+    def __init__(
+        self,
+        checkpoints_path: str,
+        threshold: float,
+        classes: Dict[str, Dict[str, Any]],
+    ):
         (
             self.embeddings,
             self.labels,
@@ -23,6 +27,7 @@ class Cluster:
         self.device = device
         self.embeddings = self.embeddings.to(self.device).half()
         self.threshold = threshold
+        self.classes = classes
         self._warmup()
         
     def _warmup(self):
@@ -93,7 +98,7 @@ class Cluster:
                 labels = [self.labels[j] for j in idxs]
                 pred, pred_score = self._weighted_vote(labels, scores)
 
-            class_information = class_infomations[pred]
+            class_information = self.classes[pred]
             class_id = class_information["class_id"]
             class_name = class_information["name"]
             color = class_information["color"]

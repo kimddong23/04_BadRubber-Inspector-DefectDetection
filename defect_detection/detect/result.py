@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Sequence, Iterator
+from dataclasses import dataclass, field
+from typing import Any, Dict, Iterator, Optional, Sequence
 import numpy as np
 
 from defect_detection.outputs import (
@@ -12,9 +12,8 @@ from defect_detection.outputs import (
     AnomalyCLIPBatchItem,
     ForegroundMaskBatchItem,
 )
-from defect_detection.utils import load_config
 from .visualize import visualize
-vis_show_cfg = load_config()["show"]
+
 
 # ---------------------------------
 # Batch Item
@@ -28,12 +27,14 @@ class DetectorBatchItem:
     anomaly_cls: ClassificationBatchItem
     segmentation: SegmentationBatchItem
     segmentation_cls: ClassificationBatchItem
+    show: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def regions(self):
         return self.anomaly.batch_regions
 
     def visualize(self) -> np.ndarray:
+        show = self.show or {}
         return visualize(
             image=self.image,
             foreground=self.foreground,
@@ -41,14 +42,14 @@ class DetectorBatchItem:
             anomaly_cls=self.anomaly_cls,
             segmentation=self.segmentation,
             segmentation_cls=self.segmentation_cls,
-            show_foreground=vis_show_cfg["foreground"],
-            show_anomaly_map=vis_show_cfg["anomaly_map"],
-            show_anomaly_score=vis_show_cfg["anomaly_score"],
-            show_anomaly_regions_polygon=vis_show_cfg["anomaly_regions_polygon"],
-            show_anomaly_regions_bbox=vis_show_cfg["anomaly_regions_bbox"],
-            show_segmentation_regions_polygon=vis_show_cfg["segmentation_regions_polygon"],
-            show_segmentation_regions_bbox=vis_show_cfg["segmentation_regions_bbox"],
-            show_pass_classes=vis_show_cfg["show_pass_classes"],
+            show_foreground=show.get("foreground", False),
+            show_anomaly_map=show.get("anomaly_map", False),
+            show_anomaly_score=show.get("anomaly_score", False),
+            show_anomaly_regions_polygon=show.get("anomaly_regions_polygon", False),
+            show_anomaly_regions_bbox=show.get("anomaly_regions_bbox", False),
+            show_segmentation_regions_polygon=show.get("segmentation_regions_polygon", False),
+            show_segmentation_regions_bbox=show.get("segmentation_regions_bbox", False),
+            show_pass_classes=show.get("show_pass_classes", False),
         )
 
 
@@ -64,6 +65,7 @@ class DetectorOutput:
     anomaly_cls: ClassificationBatchItem
     segmentation: SegmentationOutput
     segmentation_cls: ClassificationBatchItem
+    show: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         B = len(self.images)
@@ -100,4 +102,5 @@ class DetectorOutput:
             anomaly_cls=self.anomaly_cls[idx],
             segmentation=self.segmentation[idx] if self.segmentation is not None else None,
             segmentation_cls=self.segmentation_cls[idx] if self.segmentation_cls is not None else None,
+            show=self.show,
         )

@@ -1,16 +1,16 @@
-from typing import List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 import numpy as np
 import tqdm
 from ultralytics import YOLO
 
 from defect_detection.outputs import Classification
-from .classes import classes
 
 
 class Classifier:
     def __init__(
         self,
         checkpoint_path: str,
+        classes: Dict[int, Dict[str, Any]],
         imgsz: int = 32,
         conf_threshold: float = 0.5,
     ) -> None:

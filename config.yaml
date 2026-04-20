@@ -1,47 +1,22 @@
+# Grade Selection-driven configuration for standalone DefectDetection runs.
+# The `production_information` block selects which profile is loaded from
+# `src/Profiles/profiles/registry.yaml`. `checkpoint_root` is the single
+# absolute path that every checkpoint inside a base profile is anchored to.
+#
+# Runtime tweak paths:
+#   - defect_detection.show        (deep-merged on top of profile show)
+#   - defect_detection.overrides   (checkpoint/threshold/classes tweaks)
+#
+# `return_mode` and `show` cannot appear inside `overrides:` -- use the
+# dedicated paths. class_id keys are immutable; inside a class entry only
+# name / color / pass / description can be overridden.
+
+checkpoint_root: /home/s1k2/04_BadRubber/nas/NAS/sub/LG_Chemistry/inspection
+
+production_information:
+  line: BR-C
+  grade: BR1280
+
 defect_detection:
-  anomalyclip:
-    checkpoint: ./checkpoints/anomalyclip/9_12_4_mvtec+F1038-F2150-M2520/epoch_15.pth
-    imgsz: 512 # 32*16
-    threshold: 0.25
-    min_area: 0
-
-  dot_detector1:
-    checkpoint: ./checkpoints/defect/dot/yolo/weights/best.pt
-    imgsz: 1280
-    threshold: 0.3
-
-  dot_detector2:
-    checkpoint: ./checkpoints/defect/dot/yolo_2048/weights/best.pt
-    imgsz: 2048
-    threshold: 0.3
-
-  classifier:
-    checkpoint: ./checkpoints/classify/weights/SSBR/_intergrated/weights/best.pt
-    imgsz: 224 # 32*7
-    threshold: 0.8
-
-  bgremover:
-    checkpoint: ./checkpoints/segment/weights/rmbg/all/weights/best.pt
-    imgsz: 224 # 32*7
-
-  segmenter:
-    checkpoint: ./checkpoints/segment/weights/yolo_seg/SSBR_ALL/weights/best.pt
-    imgsz: 224 # 32*7
-    threshold: 0.0
-
-  sam2:
-    checkpoint: ./checkpoints/segment/weights/sam2.1/sam2.1_hiera_tiny.pt
-    config_name: sam2.1/sam2.1_hiera_t.yaml
-    pred_iou_thresh: 0.0
-    stability_score_thresh: 0.0
-    points_per_side: 1
-
-  show:
-    anomaly_map: false
-    anomaly_score: true
-    foreground: false
-    anomaly_regions_polygon: true
-    anomaly_regions_bbox: true
-    segmentation_regions_polygon: true
-    segmentation_regions_bbox: true
-    show_pass_classes: true
+  overrides: {}
+  show: {}
