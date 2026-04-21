@@ -55,6 +55,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="skip visualize image saving",
     )
+    parser.add_argument(
+        "--save-heatmap-npy",
+        action="store_true",
+        help="save raw float32 anomaly map as heatmap.npy (post-resize, fg-masked)",
+    )
     return parser.parse_args()
 
 
@@ -104,6 +109,7 @@ def main() -> int:
                 batch_imgs,
                 batch_ids,
                 results,
+                save_heatmap_npy=args.save_heatmap_npy,
             )
             saved_artifacts_count += len(saved_dirs)
 
