@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, List, Sequence
+from typing import Any, List, Optional, Sequence
 
 import cv2
 import numpy as np
@@ -102,6 +102,8 @@ def save_detection_artifacts(
     save_heatmap_npy: bool = False,
     save_crops: bool = True,
     save_metadata: bool = True,
+    save_intermediates: bool = False,
+    intermediates: Optional[dict] = None,
     polygon_scale: float = 2.0,
 ) -> str:
     """Save detection artifacts for one image.
@@ -146,6 +148,28 @@ def save_detection_artifacts(
                 np.save(heatmap_npy_path, heatmap)
             except OSError as e:
                 raise IOError(f"Failed to write heatmap npy: {heatmap_npy_path}: {e}") from e
+
+    if save_intermediates and intermediates:
+        intermediates_dir = os.path.join(out_dir, "intermediates")
+        os.makedirs(intermediates_dir, exist_ok=True)
+
+        anomaly_map_pre_resize = np.asarray(intermediates["anomaly_map_pre_resize"])
+        image_features = np.asarray(intermediates["image_features"])
+        patch_features = list(intermediates["patch_features"])
+
+        np.save(
+            os.path.join(intermediates_dir, "anomaly_map_pre_resize.npy"),
+            anomaly_map_pre_resize,
+        )
+        np.save(
+            os.path.join(intermediates_dir, "image_features.npy"),
+            image_features,
+        )
+        for idx, patch_feature in enumerate(patch_features):
+            np.save(
+                os.path.join(intermediates_dir, f"patch_features_layer{idx:02d}.npy"),
+                np.asarray(patch_feature),
+            )
 
     metadata = None
     if save_metadata:
@@ -233,6 +257,8 @@ def save_batch_artifacts(
     images: Sequence[np.ndarray],
     image_ids: Sequence[str],
     detector_output,
+    anomaly_extractor: Optional[Any] = None,
+    save_intermediates: bool = False,
     **kwargs,
 ) -> List[str]:
     if len(images) != len(image_ids):
@@ -241,9 +267,18 @@ def save_batch_artifacts(
     if len(detector_output) != len(images):
         raise ValueError("detector_output and images length mismatch")
 
+    batch_intermediates = None
+    if save_intermediates:
+        if anomaly_extractor is None or getattr(anomaly_extractor, "_last_intermediates", None) is None:
+            raise ValueError("save_intermediates requires anomaly_extractor._last_intermediates")
+        batch_intermediates = anomaly_extractor._last_intermediates
+        if len(batch_intermediates) != len(images):
+            raise ValueError("anomaly_extractor._last_intermediates and images length mismatch")
+
     saved_dirs: List[str] = []
     for idx, (image, image_id) in enumerate(zip(images, image_ids)):
         batch_item = detector_output[idx]
+        intermediates = batch_intermediates[idx] if batch_intermediates is not None else None
         saved_dirs.append(
             save_detection_artifacts(
                 out_root=out_root,
@@ -252,6 +287,8 @@ def save_batch_artifacts(
                 anomaly_item=batch_item.anomaly,
                 anomaly_cls_item=batch_item.anomaly_cls,
                 segmentation_item=batch_item.segmentation,
+                save_intermediates=save_intermediates,
+                intermediates=intermediates,
                 **kwargs,
             )
         )

@@ -60,6 +60,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="save raw float32 anomaly map as heatmap.npy (post-resize, fg-masked)",
     )
+    parser.add_argument(
+        "--save-intermediates",
+        action="store_true",
+        help="save per-image AnomalyCLIP intermediates (patch_features etc.) to intermediates/",
+    )
     return parser.parse_args()
 
 
@@ -76,6 +81,8 @@ def main() -> int:
         os.makedirs(args.artifacts_dir, exist_ok=True)
 
     detector = Detector()
+    if args.save_intermediates:
+        detector.anomaly_extractor.capture_intermediates = True
 
     total_images = len(imgs)
     if total_images == 0:
@@ -109,6 +116,8 @@ def main() -> int:
                 batch_imgs,
                 batch_ids,
                 results,
+                anomaly_extractor=detector.anomaly_extractor if args.save_intermediates else None,
+                save_intermediates=args.save_intermediates,
                 save_heatmap_npy=args.save_heatmap_npy,
             )
             saved_artifacts_count += len(saved_dirs)
