@@ -29,11 +29,12 @@
 - `--save-artifacts` → 디렉토리 + `heatmap.jpg` + `metadata.json` + `crops/`
 - `--save-heatmap-npy` → `heatmap.npy` 추가
 
-### `intermediates/` — Colab 디버깅 훅 전용 (레포 코드에 없음)
+### `intermediates/` — `--save-intermediates` 플래그로 생성
 
-AnomalyCLIP 모델 내부 중간값을 확인하려고 Colab 노트북에서 `AnomalyCLIPInference.infer`
-를 monkey-patch 해 캡처한 것. 본 레포 코드의 `Detector` / `artifact_saver` 는 이 파일들을
-생성하지 않습니다 — 레포 기능 (artifact_saver) + 외부 디버깅 훅으로 역할이 나뉜 구조입니다.
+AnomalyCLIP 모델 내부 중간값(patch_features / image_features / pre-resize
+anomaly_map)을 레포 기능으로 저장한 결과. `AnomalyCLIPInference.capture_intermediates`
+를 활성화하고 `artifact_saver` 가 이를 꺼내 `.npy` 로 저장합니다.
+`main.py --save-intermediates` 로 켭니다. 기본값은 off 라서 미지정 시 기존 경로에 영향 없음.
 
 | 파일 | shape / dtype | 설명 |
 | --- | --- | --- |
